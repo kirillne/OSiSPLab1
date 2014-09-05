@@ -3,6 +3,7 @@
 
 #include "stdafx.h"
 #include "Lab1.h"
+#include "MemoryBitmap.h"
 
 #define MAX_LOADSTRING 100
 
@@ -10,14 +11,11 @@
 HINSTANCE hInst;								// current instance
 TCHAR szTitle[MAX_LOADSTRING];					// The title bar text
 TCHAR szWindowClass[MAX_LOADSTRING];			// the main window class name
+MemoryBitmap* mainBmp;							//the main (result) image
 int mouseDownX;									//coordinates where mouse was down
 int mouseDownY;
 
-//DC and bmp for Main draw bitmap
-HDC memDC;
-HBITMAP bmp;
-int bmpWidth=5000;
-int bmpHeight = 5000;
+
 
 // Forward declarations of functions included in this code module:
 ATOM				MyRegisterClass(HINSTANCE hInstance);
@@ -44,7 +42,7 @@ int APIENTRY _tWinMain(_In_ HINSTANCE hInstance,
 	LoadString(hInstance, IDC_LAB1, szWindowClass, MAX_LOADSTRING);
 	MyRegisterClass(hInstance);
 
-	CreateMemoryBitmap();
+	mainBmp = new MemoryBitmap(500,500);
 	// Perform application initialization:
 	if (!InitInstance (hInstance, nCmdShow))
 	{
@@ -63,26 +61,8 @@ int APIENTRY _tWinMain(_In_ HINSTANCE hInstance,
 		}
 	}
 
-	DeleteObject(bmp);
-	DeleteObject(memDC);
+	mainBmp->~MemoryBitmap();
 	return (int) msg.wParam;
-}
-
-//
-//  FUNCTION: CreateMemoryBitmap()
-//
-//  PURPOSE: Create bitmap in memory.
-//
-void CreateMemoryBitmap() 
-{
-	//HWND desctopHWND = GetDesktopWindow();
-	//HDC hdc =  GetDC(desctopHWND); 
-	HBRUSH brush = CreateSolidBrush(RGB(0xff, 0xff, 0xff));
-	memDC = CreateCompatibleDC(NULL);
-	bmp = CreateCompatibleBitmap(memDC, bmpWidth, bmpHeight);
-	SelectObject(memDC, bmp);
-	 SelectObject(memDC, brush);
-	PatBlt(memDC, 0,0, bmpWidth, bmpHeight,PATCOPY);
 }
 
 
@@ -178,23 +158,19 @@ LRESULT CALLBACK WndProc( HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 		break;
 	case WM_PAINT:
 		hdc = BeginPaint(hWnd, &ps);
-		BitBlt(hdc, 0, 0, bmpWidth, bmpHeight, memDC, 0, 0, SRCCOPY);
+		mainBmp->DrawToForm(hdc);
 		EndPaint(hWnd, &ps);
 		break;
 	case WM_LBUTTONDOWN:
 		mouseDownX = GET_X_LPARAM(lParam); 
 		mouseDownY = GET_Y_LPARAM(lParam); 
-		MoveToEx(memDC, mouseDownX, mouseDownY, NULL);
+		mainBmp->MoveTo(mouseDownX, mouseDownY);
 		break;
 	case WM_MOUSEMOVE:
 		if(wParam == MK_LBUTTON)
 		{
-			
-			/*mouseDownX = GET_X_LPARAM(lParam); 
-			mouseDownY = GET_Y_LPARAM(lParam);*/
-			LineTo(memDC,GET_X_LPARAM(lParam), GET_Y_LPARAM(lParam));
+			mainBmp->BmpLineTo(GET_X_LPARAM(lParam), GET_Y_LPARAM(lParam));
 			InvalidateRect(hWnd, NULL, false);
-			//UpdateWindow(hWnd);
 		}
 		break;
 	case WM_DESTROY:
