@@ -42,7 +42,7 @@ int APIENTRY _tWinMain(_In_ HINSTANCE hInstance,
 	LoadString(hInstance, IDC_LAB1, szWindowClass, MAX_LOADSTRING);
 	MyRegisterClass(hInstance);
 
-	mainBmp = new MemoryBitmap(500,500);
+	
 	// Perform application initialization:
 	if (!InitInstance (hInstance, nCmdShow))
 	{
@@ -92,6 +92,13 @@ ATOM MyRegisterClass(HINSTANCE hInstance)
 	return RegisterClassEx(&wcex);
 }
 
+MemoryBitmap* GetFullWindowMemoryBmp(HWND hWnd)
+{
+	RECT clientRect;
+	GetClientRect(hWnd, &clientRect);
+	return new MemoryBitmap(clientRect.right,clientRect.bottom);
+}
+
 //
 //   FUNCTION: InitInstance(HINSTANCE, int)
 //
@@ -116,10 +123,12 @@ BOOL InitInstance(HINSTANCE hInstance, int nCmdShow)
       return FALSE;
    }
 
-   ShowWindow(hWnd, nCmdShow);
-   UpdateWindow(hWnd);
+	mainBmp = GetFullWindowMemoryBmp(hWnd);
 
-   return TRUE;
+	ShowWindow(hWnd, nCmdShow);
+	UpdateWindow(hWnd);
+
+	return TRUE;
 }
 
 //
