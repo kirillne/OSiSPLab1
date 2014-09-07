@@ -79,6 +79,7 @@
     <Text Include="ReadMe.txt" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="Enums.h" />
     <ClInclude Include="Lab1.h" />
     <ClInclude Include="MemoryBitmap.h" />
     <ClInclude Include="Resource.h" />

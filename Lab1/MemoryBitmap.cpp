@@ -1,28 +1,43 @@
 #include "stdafx.h"
 #include "MemoryBitmap.h"
 
-HDC memDC;
-HBITMAP bmp;
-HBRUSH brush;
-int width, height;
 
-MemoryBitmap::MemoryBitmap(int bmpWidth, int bmpHeight)
+
+MemoryBitmap::MemoryBitmap(RECT size)
 {
-	width = bmpWidth;
-	height = bmpHeight;
-	brush = CreateSolidBrush(RGB(0xff, 0xff, 0xff));
+	brush=(HBRUSH)GetStockObject(NULL_BRUSH);
+	pen=(HPEN)GetStockObject(BLACK_PEN);
+
+
 	memDC = CreateCompatibleDC(NULL);
-	bmp = CreateCompatibleBitmap(memDC, bmpWidth, bmpHeight);
-	SelectObject(memDC, bmp);
-	SelectObject(memDC, brush);
-	PatBlt(memDC, 0,0, bmpWidth, bmpHeight,PATCOPY);
+	Clear(size);
+	DeleteObject(SelectObject(memDC, (HBRUSH) WHITE_BRUSH)); 
+
+	PatBlt(memDC, 0,0, size.right, size.bottom,PATCOPY);
+
+	DeleteObject(SelectObject(memDC,pen));
+	DeleteObject(SelectObject(memDC,brush));
 
 }
 
-void MemoryBitmap::DrawToForm(HDC hdc)
+
+
+HDC MemoryBitmap::GetDC()
 {
-	BitBlt(hdc, 0, 0, width, height, memDC, 0, 0, SRCCOPY);
+	return memDC;
 }
+
+void MemoryBitmap::Clear( RECT size)
+{
+	bmp = CreateCompatibleBitmap(memDC,size.right,size.bottom);
+	DeleteObject(SelectObject(memDC,bmp));
+}
+
+void MemoryBitmap::DrawToHDC(HDC hdc, RECT size)
+{	 
+	BitBlt( hdc, 0, 0, size.right,size.bottom, memDC, 0, 0,SRCCOPY );
+}
+
 
 void MemoryBitmap::BmpLineTo(int x,  int y)
 {
