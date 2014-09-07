@@ -172,29 +172,7 @@ LRESULT CALLBACK WndProc( HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 		SelectObject(hdc,hBrush);
 		mainBmp = new MemoryBitmap(rect);
 		tempBmp = new MemoryBitmap(rect);
-
-		/*hPen=(HPEN)GetStockObject(BLACK_PEN);
-				
-		tempDC=CreateCompatibleDC(NULL);
-		tempBitmap=CreateCompatibleBitmap(tempDC,rect.right,rect.bottom);
-
-		mainBitmapDC=CreateCompatibleDC(NULL);
-		mainBitmap=CreateCompatibleBitmap(mainBitmapDC,rect.right,rect.bottom);
-
-		DeleteObject(SelectObject(tempDC,tempBitmap));
-		DeleteObject(SelectObject(tempDC, (HBRUSH) WHITE_BRUSH)); 
-		PatBlt(tempDC, 0, 0, rect.right, rect.bottom, PATCOPY);
-
-
-		DeleteObject(SelectObject(mainBitmapDC,mainBitmap));
-		DeleteObject(SelectObject(mainBitmapDC, (HBRUSH) WHITE_BRUSH)); 
-		PatBlt(mainBitmapDC, 0, 0, rect.right, rect.bottom, PATCOPY);
-
-		DeleteObject(SelectObject(tempDC,hPen));
-		DeleteObject(SelectObject(tempDC,hBrush));
-		DeleteObject(SelectObject(mainBitmapDC,hPen));
-		DeleteObject(SelectObject(mainBitmapDC,hBrush));*/
-
+		
 		break;
 	case WM_COMMAND:
 		wmId    = LOWORD(wParam);
@@ -226,34 +204,25 @@ LRESULT CALLBACK WndProc( HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 		if(isDrawingModeEnabled)
 		{
 			tempBmp->DrawToHDC(hdc, rect);
-		    //BitBlt(hdc, 0, 0,rect.right,rect.bottom,tempDC,0, 0, SRCCOPY);
-			isDrawingModeEnabled = false;
+		    isDrawingModeEnabled = false;
 		}
 		else
 		{
 			mainBmp->DrawToHDC(hdc, rect);
-			//BitBlt(hdc, 0, 0,rect.right,rect.bottom,mainBitmapDC,0, 0, SRCCOPY);
-
 		}
 		EndPaint(hWnd, &ps);
 		break;
 	case WM_LBUTTONDOWN:
 		mouseDownX = GET_X_LPARAM(lParam); 
 		mouseDownY = GET_Y_LPARAM(lParam); 
-		//MoveToEx(tempDC,mouseDownX,mouseDownY,NULL);
-		//MoveToEx(mainBitmapDC,mouseDownX,mouseDownY,NULL);
 		mainBmp->MoveTo(mouseDownX, mouseDownY);
 		tempBmp->MoveTo(mouseDownX, mouseDownY);
 		break;
 	case WM_LBUTTONUP:
 		GetClientRect(hWnd,&rect);
-		/*tempBitmap=CreateCompatibleBitmap(hdc,rect.right,rect.bottom);
-		DeleteObject(SelectObject(tempDC,tempBitmap));
-		BitBlt(tempDC,0,0,rect.right,rect.bottom,mainBitmapDC,0,0,SRCCOPY);*/
 		tempBmp->Clear(rect);
 		BitBlt(tempBmp->GetDC(),0,0,rect.right,rect.bottom,mainBmp->GetDC(),0,0,SRCCOPY);
 		
-		//mainBmp->DrawToHDC(tempBmp->GetDC(),rect);
 
 
 		switch (selectedPaintTool)
@@ -261,8 +230,6 @@ LRESULT CALLBACK WndProc( HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 		case PTl_Line:
 			mainBmp->MoveTo(mouseDownX,mouseDownY);
 			mainBmp->BmpLineTo(GET_X_LPARAM(lParam), GET_Y_LPARAM(lParam));
-			/*MoveToEx(mainBitmapDC,mouseDownX,mouseDownY,NULL);
-			LineTo(mainBitmapDC,GET_X_LPARAM(lParam), GET_Y_LPARAM(lParam));*/
 			break;
 		}
 		isDrawingModeEnabled = false;
@@ -277,24 +244,14 @@ LRESULT CALLBACK WndProc( HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 			tempBmp->Clear(rect);
 			BitBlt(tempBmp->GetDC(),0,0,rect.right,rect.bottom,mainBmp->GetDC(),0,0,SRCCOPY);
 
-			//mainBmp->DrawToHDC(tempBmp->GetDC(),rect);
-				/*		tempBitmap=CreateCompatibleBitmap(hdc,rect.right,rect.bottom);
-			DeleteObject(SelectObject(tempDC,tempBitmap));
-			BitBlt(tempDC,0,0,rect.right,rect.bottom,mainBitmapDC,0,0,SRCCOPY);
-			*/
 			switch (selectedPaintTool)
 			{
 			case PTl_Pencil:
-				//LineTo(mainBitmapDC,GET_X_LPARAM(lParam), GET_Y_LPARAM(lParam));
 				mainBmp->BmpLineTo(GET_X_LPARAM(lParam), GET_Y_LPARAM(lParam));
 				break;
 			case PTl_Line:
 				tempBmp->MoveTo(mouseDownX, mouseDownY);
 				tempBmp->BmpLineTo(GET_X_LPARAM(lParam), GET_Y_LPARAM(lParam));
-				
-				/*MoveToEx(tempDC,mouseDownX,mouseDownY,NULL);
-			    LineTo(tempDC,GET_X_LPARAM(lParam), GET_Y_LPARAM(lParam));*/
-
 				break;
 			case PTl_Rectlange:
 				break;
