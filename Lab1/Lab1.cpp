@@ -15,6 +15,12 @@ TCHAR szWindowClass[MAX_LOADSTRING];			// the main window class name
 MemoryBitmap* mainBmp;							//the main (result) image
 MemoryBitmap* tempBmp;							//the temp image, while drawing don't interrupt
 
+HDC tempDC=0;
+HDC mainBitmapDC=0;
+HBRUSH hBrush;
+HPEN hPen;
+RECT rect;
+HBITMAP tempBitmap,mainBitmap;
 
 
 
@@ -74,7 +80,7 @@ int APIENTRY _tWinMain(_In_ HINSTANCE hInstance,
 
 	mainBmp->~MemoryBitmap();
 	tempBmp->~MemoryBitmap();
-	return (int) msg.wParam;
+	return static_cast<int>(msg.wParam);
 }
 
 
@@ -138,6 +144,108 @@ BOOL InitInstance(HINSTANCE hInstance, int nCmdShow)
 	return TRUE;
 }
 
+
+void SaveFile(HWND hWnd)
+{
+	OPENFILENAME openfilename;
+	wchar_t fullpath[256],filename[256];
+	fullpath[0] = '\0';
+	filename[0] = '\0';
+
+	openfilename.lStructSize=sizeof(OPENFILENAME);
+	openfilename.hwndOwner=hWnd;
+	openfilename.lpstrDefExt = L"emf";
+	openfilename.hInstance=hInst;
+	openfilename.lpstrFilter=L"Metafile (*.emf)\0*.emf\0Все файлы (*.*)\0*.*\0";
+	openfilename.nFilterIndex=1;
+	openfilename.lpstrCustomFilter = NULL;
+	openfilename.lpstrFile=fullpath;
+	openfilename.nMaxFile=sizeof(fullpath)/sizeof(*fullpath);
+	openfilename.lpstrFileTitle=filename;
+	openfilename.nMaxFileTitle=sizeof(filename);
+	openfilename.lpstrInitialDir=NULL;
+	openfilename.lpstrTitle=L"Save file as...";
+	openfilename.Flags=OFN_PATHMUSTEXIST|OFN_OVERWRITEPROMPT|OFN_HIDEREADONLY|OFN_EXPLORER;
+	if(GetSaveFileName(&openfilename))
+	{
+		// Determine the picture frame dimensions.  
+		// iWidthMM is the display width in millimeters.  
+		// iHeightMM is the display height in millimeters.  
+		// iWidthPels is the display width in pixels.  
+		// iHeightPels is the display height in pixels  
+		HDC hdcRef = GetDC(hWnd); 
+		int iWidthMM = GetDeviceCaps(hdcRef, HORZSIZE); 
+		int iHeightMM = GetDeviceCaps(hdcRef, VERTSIZE); 
+		int iWidthPels = GetDeviceCaps(hdcRef, HORZRES); 
+		int iHeightPels = GetDeviceCaps(hdcRef, VERTRES); 
+
+		RECT rect;
+		GetClientRect(hWnd,&rect);
+
+		rect.left = (rect.left * iWidthMM * 100)/iWidthPels; 
+		rect.top = (rect.top * iHeightMM * 100)/iHeightPels; 
+		rect.right = (rect.right * iWidthMM * 100)/iWidthPels; 
+		rect.bottom = (rect.bottom * iHeightMM * 100)/iHeightPels; 
+
+		HDC metaFileDC =  CreateEnhMetaFile(NULL,fullpath,&rect, NULL );
+		GetClientRect(hWnd,&rect);
+		PatBlt(metaFileDC, 0,0, rect.right, rect.bottom,PATCOPY);
+		mainBmp->DrawToHDC(metaFileDC,rect );
+	  	CloseEnhMetaFile(metaFileDC);
+		ReleaseDC(hWnd, hdcRef);
+	}
+}
+
+void NewFile(HWND hWnd)
+{
+	HDC hdc=GetDC(hWnd);
+	isDrawingModeEnabled = false;
+	GetClientRect(hWnd,&rect);
+	hBrush=(HBRUSH)GetStockObject(NULL_BRUSH);
+	SelectObject(hdc,hBrush);
+	mainBmp = new MemoryBitmap(rect);
+	tempBmp = new MemoryBitmap(rect);
+	InvalidateRect(hWnd,NULL,FALSE);
+	UpdateWindow(hWnd);
+}
+
+
+void OpenImageFile(HWND hWnd)
+{
+	OPENFILENAME openfilename;
+	wchar_t fullpath[256],filename[256];
+	fullpath[0] = '\0';
+	filename[0] = '\0';
+
+	openfilename.lStructSize=sizeof(OPENFILENAME);
+	openfilename.hwndOwner=hWnd;
+	openfilename.lpstrDefExt = L"emf";
+	openfilename.hInstance=hInst;
+	openfilename.lpstrFilter=L"Metafile (*.emf)\0*.emf\0Все файлы (*.*)\0*.*\0";
+	openfilename.nFilterIndex=1;
+	openfilename.lpstrCustomFilter = NULL;
+	openfilename.lpstrFile=fullpath;
+	openfilename.nMaxFile=sizeof(fullpath)/sizeof(*fullpath);
+	openfilename.lpstrFileTitle=filename;
+	openfilename.nMaxFileTitle=sizeof(filename);
+	openfilename.lpstrInitialDir=NULL;
+	openfilename.lpstrTitle=L"Save file as...";
+	openfilename.Flags=OFN_PATHMUSTEXIST|OFN_OVERWRITEPROMPT|OFN_HIDEREADONLY|OFN_EXPLORER;
+
+	// Display the Open dialog box. 
+
+	if (GetOpenFileName(&openfilename))
+	{
+		NewFile(hWnd);
+		RECT rect;
+		GetClientRect(hWnd,&rect);
+		HENHMETAFILE metafile =  GetEnhMetaFile(fullpath);
+		PlayEnhMetaFile(mainBmp->GetDC(), metafile,&rect );
+		InvalidateRect(hWnd,NULL,FALSE);
+		UpdateWindow(hWnd);
+	}
+}
+
 //
 //  FUNCTION: WndProc(HWND, UINT, WPARAM, LPARAM)
 //
@@ -150,12 +258,6 @@ BOOL InitInstance(HINSTANCE hInstance, int nCmdShow)
 //
 LRESULT CALLBACK WndProc( HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 {
-	static HDC tempDC=0;
-	static HDC mainBitmapDC=0;
-	static HBRUSH hBrush;
-	static HPEN hPen;
-	RECT rect;
-	static HBITMAP tempBitmap,mainBitmap;
 
 
 	int wmId, wmEvent;
@@ -193,6 +295,15 @@ LRESULT CALLBACK WndProc( HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 			selectedPaintTool = PTl_Line;
 			InvalidateRect(hWnd,NULL,FALSE);
 			break;
+		case ID_FILE_SAVE:
+			SaveFile(hWnd);			
+			break;
+		case ID_FILE_NEW:
+			NewFile(hWnd);
+			break;
+		case ID_FILE_OPEN:
+			OpenImageFile(hWnd);
+			break;
 		default:
 			return DefWindowProc(hWnd, message, wParam, lParam);
 		}
@@ -222,9 +333,6 @@ LRESULT CALLBACK WndProc( HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 		GetClientRect(hWnd,&rect);
 		tempBmp->Clear(rect);
 		BitBlt(tempBmp->GetDC(),0,0,rect.right,rect.bottom,mainBmp->GetDC(),0,0,SRCCOPY);
-		
-
-
 		switch (selectedPaintTool)
 		{
 		case PTl_Line:

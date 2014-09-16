@@ -5,13 +5,13 @@
 
 MemoryBitmap::MemoryBitmap(RECT size)
 {
-	brush=(HBRUSH)GetStockObject(NULL_BRUSH);
-	pen=(HPEN)GetStockObject(BLACK_PEN);
+	brush=static_cast<HBRUSH>(GetStockObject(NULL_BRUSH));
+	pen=static_cast<HPEN>(GetStockObject(BLACK_PEN));
 
 
 	memDC = CreateCompatibleDC(NULL);
 	Clear(size);
-	DeleteObject(SelectObject(memDC, (HBRUSH) WHITE_BRUSH)); 
+	DeleteObject(SelectObject(memDC, static_cast<HBRUSH>(WHITE_BRUSH))); 
 
 	PatBlt(memDC, 0,0, size.right, size.bottom,PATCOPY);
 
