@@ -3,17 +3,18 @@
 
 
 
-MemoryBitmap::MemoryBitmap(RECT size)
+MemoryBitmap::MemoryBitmap(RECT size, HDC hDC)
 {
 	brush=static_cast<HBRUSH>(GetStockObject(NULL_BRUSH));
-	pen=CreatePen(PS_SOLID, 0, RGB(0,0,0)); 
-	DeleteObject(SelectObject(memDC, pen)); 
 
+	this->hdc = hDC;
+	penWidth = 1;
+	penColor = RGB(0,0,0);
+	pen=CreatePen(PS_SOLID, penWidth, penColor); 
 
-	memDC = CreateCompatibleDC(NULL);
+	memDC = CreateCompatibleDC(hDC);
 	Clear(size);
-	DeleteObject(SelectObject(memDC, static_cast<HBRUSH>(WHITE_BRUSH))); 
-
+	DeleteObject(SelectObject(hDC, static_cast<HBRUSH>(WHITE_BRUSH))); 
 	PatBlt(memDC, 0,0, size.right, size.bottom,PATCOPY);
 
 	DeleteObject(SelectObject(memDC,pen));
@@ -24,11 +25,17 @@ MemoryBitmap::MemoryBitmap(RECT size)
 
 void MemoryBitmap::SetPenWidth(int penWidth)
 {
-	DeleteObject(pen);
-	pen=CreatePen(PS_SOLID, penWidth,  RGB(0,0,0)); 
-	DeleteObject(SelectObject(memDC, pen)); 
+	this->penWidth = penWidth;
+	pen=CreatePen(PS_SOLID, penWidth,  penColor); 
+	DeleteObject(SelectObject(memDC, pen));
 }
 
+void MemoryBitmap::SetPenColor(COLORREF color)
+{
+	this->penColor = color;
+	pen=CreatePen(PS_SOLID, penWidth,  penColor); 
+	DeleteObject(SelectObject(memDC, pen));
+}
 
 HDC MemoryBitmap::GetDC()
 {
@@ -37,14 +44,13 @@ HDC MemoryBitmap::GetDC()
 
 void MemoryBitmap::Clear( RECT size)
 {
-	DeleteBitmap(bmp);
-	bmp = CreateCompatibleBitmap(memDC,size.right,size.bottom);
+	bmp = CreateCompatibleBitmap(hdc,size.right,size.bottom);
 	DeleteObject(SelectObject(memDC,bmp));
 }
 
-void MemoryBitmap::DrawToHDC(HDC hdc, RECT size)
+void MemoryBitmap::DrawToHDC(HDC Secondhdc, RECT size)
 {	 
-	BitBlt( hdc, 0, 0, size.right,size.bottom, memDC, 0, 0,SRCCOPY );
+	BitBlt( Secondhdc, 0, 0, size.right,size.bottom, memDC, 0, 0,SRCCOPY );
 }
 
 

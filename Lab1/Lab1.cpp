@@ -203,12 +203,31 @@ void NewFile(HWND hWnd)
 	GetClientRect(hWnd,&rect);
 	hBrush=(HBRUSH)GetStockObject(NULL_BRUSH);
 	SelectObject(hdc,hBrush);
-	mainBmp = new MemoryBitmap(rect);
-	tempBmp = new MemoryBitmap(rect);
+	mainBmp = new MemoryBitmap(rect, hdc);
+	tempBmp = new MemoryBitmap(rect,hdc);
 	InvalidateRect(hWnd,NULL,FALSE);
 	UpdateWindow(hWnd);
 }
 
+COLORREF GetColorFromUser(HWND hWnd)
+{
+	CHOOSECOLOR cc;                 // common dialog box structure 
+	static COLORREF acrCustClr[16]; // array of custom colors 
+	HBRUSH hbrush;                  // brush handle
+
+	// Initialize CHOOSECOLOR 
+	ZeroMemory(&cc, sizeof(cc));
+	cc.lStructSize = sizeof(cc);
+	cc.hwndOwner = hWnd;
+	cc.lpCustColors = (LPDWORD) acrCustClr;
+	cc.Flags = CC_FULLOPEN ;
+ 
+	if (ChooseColor(&cc)) 
+	{
+		return cc.rgbResult; 
+	}
+	return 0xFFFFFFFF; // It's unavalible value
+}
 
 void PrintFile(HWND hWnd)
 {
@@ -289,6 +308,16 @@ void OpenImageFile(HWND hWnd)
 	}
 }
 
+void SetPenColor(HWND hWnd)
+{
+	COLORREF color = GetColorFromUser(hWnd);
+	if(color != 0xFFFFFFFF)
+	{
+		mainBmp->SetPenColor(color);
+		tempBmp->SetPenColor(color);
+	}
+}
+
 //
 //  FUNCTION: WndProc(HWND, UINT, WPARAM, LPARAM)
 //
@@ -311,13 +340,7 @@ LRESULT CALLBACK WndProc( HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 	{
 	case WM_CREATE:
 		GetClientRect(hWnd,&rect);
-
-		
-		hBrush=(HBRUSH)GetStockObject(NULL_BRUSH);
-		SelectObject(hdc,hBrush);
-		mainBmp = new MemoryBitmap(rect);
-		tempBmp = new MemoryBitmap(rect);
-		
+		NewFile(hWnd);
 		break;
 	case WM_COMMAND:
 		wmId    = LOWORD(wParam);
@@ -373,6 +396,9 @@ LRESULT CALLBACK WndProc( HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 		case ID_WIDTH_6:
 			mainBmp->SetPenWidth(6);
 			tempBmp->SetPenWidth(6);
+			break;
+		case ID_PEN_COLOR:
+			SetPenColor(hWnd);
 			break;
 		default:
 			return DefWindowProc(hWnd, message, wParam, lParam);
