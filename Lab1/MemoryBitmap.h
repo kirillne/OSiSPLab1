@@ -9,6 +9,8 @@ public:
 	void BmpLineTo(int x, int y);
 	void Clear(RECT size);
 	HDC GetDC();
+	void SetPenWidth(int penWidth);
+
 private:
 	HDC memDC;
 	HBITMAP bmp;

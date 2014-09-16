@@ -350,6 +350,30 @@ LRESULT CALLBACK WndProc( HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 		case ID_FILE_PRINT:
 			PrintFile(hWnd);
 			break;
+		case ID_WIDTH_1:
+			mainBmp->SetPenWidth(1);
+			tempBmp->SetPenWidth(1);
+			break;
+		case ID_WIDTH_2:
+			mainBmp->SetPenWidth(2);
+			tempBmp->SetPenWidth(2);
+			break;
+		case ID_WIDTH_3:
+			mainBmp->SetPenWidth(3);
+			tempBmp->SetPenWidth(3);
+			break;		
+		case ID_WIDTH_4:
+			mainBmp->SetPenWidth(4);
+			tempBmp->SetPenWidth(4);
+			break;
+		case ID_WIDTH_5:
+			mainBmp->SetPenWidth(5);
+			tempBmp->SetPenWidth(5);
+			break;
+		case ID_WIDTH_6:
+			mainBmp->SetPenWidth(6);
+			tempBmp->SetPenWidth(6);
+			break;
 		default:
 			return DefWindowProc(hWnd, message, wParam, lParam);
 		}

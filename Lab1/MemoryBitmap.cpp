@@ -6,7 +6,8 @@
 MemoryBitmap::MemoryBitmap(RECT size)
 {
 	brush=static_cast<HBRUSH>(GetStockObject(NULL_BRUSH));
-	pen=static_cast<HPEN>(GetStockObject(BLACK_PEN));
+	pen=CreatePen(PS_SOLID, 0, RGB(0,0,0)); 
+	DeleteObject(SelectObject(memDC, pen)); 
 
 
 	memDC = CreateCompatibleDC(NULL);
@@ -21,6 +22,13 @@ MemoryBitmap::MemoryBitmap(RECT size)
 }
 
 
+void MemoryBitmap::SetPenWidth(int penWidth)
+{
+	DeleteObject(pen);
+	pen=CreatePen(PS_SOLID, penWidth,  RGB(0,0,0)); 
+	DeleteObject(SelectObject(memDC, pen)); 
+}
+
 
 HDC MemoryBitmap::GetDC()
 {
@@ -29,6 +37,7 @@ HDC MemoryBitmap::GetDC()
 
 void MemoryBitmap::Clear( RECT size)
 {
+	DeleteBitmap(bmp);
 	bmp = CreateCompatibleBitmap(memDC,size.right,size.bottom);
 	DeleteObject(SelectObject(memDC,bmp));
 }
@@ -54,4 +63,5 @@ MemoryBitmap::~MemoryBitmap(void)
 	DeleteObject(bmp);
 	DeleteObject(memDC);
 	DeleteObject(brush);
+	DeleteObject(pen);
 }
