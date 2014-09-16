@@ -164,7 +164,7 @@ void SaveFile(HWND hWnd)
 	openfilename.lpstrFileTitle=filename;
 	openfilename.nMaxFileTitle=sizeof(filename);
 	openfilename.lpstrInitialDir=NULL;
-	openfilename.lpstrTitle=L"Save file as...";
+	openfilename.lpstrTitle=L"Open file...";
 	openfilename.Flags=OFN_PATHMUSTEXIST|OFN_OVERWRITEPROMPT|OFN_HIDEREADONLY|OFN_EXPLORER;
 	if(GetSaveFileName(&openfilename))
 	{
@@ -209,6 +209,49 @@ void NewFile(HWND hWnd)
 	UpdateWindow(hWnd);
 }
 
+
+void PrintFile(HWND hWnd)
+{
+	PRINTDLG printDlg;
+	ZeroMemory(&printDlg, sizeof(printDlg));
+	printDlg.lStructSize = sizeof(printDlg);
+	printDlg.hwndOwner   = hWnd;
+	printDlg.hDevMode    = NULL; 
+	printDlg.hDevNames   = NULL; 
+	printDlg.Flags       = PD_USEDEVMODECOPIESANDCOLLATE | PD_RETURNDC;
+	printDlg.nCopies     = 1;
+	printDlg.nFromPage   = 0xFFFF;
+	printDlg.nToPage     = 0xFFFF;
+	printDlg.nMinPage    = 1;
+	printDlg.nMaxPage    = 0xFFFF;
+	
+	if (PrintDlg(&printDlg))
+	{
+		/*int Rx = GetDeviceCaps(printDlg.hDC, LOGPIXELSX);
+		int Ry = GetDeviceCaps(printDlg.hDC, LOGPIXELSY);
+		int Rx1 = GetDeviceCaps(hdcMem, LOGPIXELSX);
+		int Ry1 = GetDeviceCaps(hdcMem, LOGPIXELSY);*/
+		DOCINFO docInfo;
+		docInfo.cbSize = sizeof(docInfo);
+		docInfo.lpszDocName=L"Print Picture";
+		docInfo.fwType=NULL;
+		docInfo.lpszDatatype=NULL;
+		docInfo.lpszOutput=NULL;
+	
+		StartDoc(printDlg.hDC, &docInfo);
+		StartPage(printDlg.hDC);
+
+		GetClientRect(hWnd,&rect);
+		PatBlt(printDlg.hDC, 0,0, rect.right, rect.bottom,PATCOPY);
+		mainBmp->DrawToHDC(printDlg.hDC,rect );
+
+		EndPage(printDlg.hDC);
+		EndDoc(printDlg.hDC);
+		DeleteDC(printDlg.hDC);
+	}
+
+
+}
 
 void OpenImageFile(HWND hWnd)
 {
@@ -303,6 +346,9 @@ LRESULT CALLBACK WndProc( HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 			break;
 		case ID_FILE_OPEN:
 			OpenImageFile(hWnd);
+			break;
+		case ID_FILE_PRINT:
+			PrintFile(hWnd);
 			break;
 		default:
 			return DefWindowProc(hWnd, message, wParam, lParam);
