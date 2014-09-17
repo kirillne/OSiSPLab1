@@ -48,11 +48,6 @@ void MemoryBitmap::Clear( RECT size)
 	DeleteObject(SelectObject(memDC,bmp));
 }
 
-void MemoryBitmap::DrawToHDC(HDC Secondhdc, RECT size)
-{	 
-	BitBlt( Secondhdc, 0, 0, size.right,size.bottom, memDC, 0, 0,SRCCOPY );
-}
-
 
 void MemoryBitmap::BmpLineTo(int x,  int y)
 {
@@ -70,4 +65,9 @@ MemoryBitmap::~MemoryBitmap(void)
 	DeleteObject(memDC);
 	DeleteObject(brush);
 	DeleteObject(pen);
+}
+
+void MemoryBitmap::DrawToHDC(HDC secHDC, RECT thisSize, RECT sourseSize)
+{
+	StretchBlt(secHDC,sourseSize.left, sourseSize.top,sourseSize.right, sourseSize.bottom, memDC,thisSize.left, thisSize.top,thisSize.right, thisSize.bottom,SRCCOPY );
 }

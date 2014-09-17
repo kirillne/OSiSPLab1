@@ -22,7 +22,9 @@ HPEN hPen;
 RECT rect;
 HBITMAP tempBitmap,mainBitmap;
 
-
+double scale = 1;
+int offsetX = 1000;
+int offsetY = 1000;
 
 
 int mouseDownX;									//coordinates where mouse was down
@@ -78,11 +80,18 @@ int APIENTRY _tWinMain(_In_ HINSTANCE hInstance,
 		}
 	}
 
-	mainBmp->~MemoryBitmap();
-	tempBmp->~MemoryBitmap();
 	return static_cast<int>(msg.wParam);
 }
 
+RECT GetMainBMPRect()
+{
+	RECT rect;
+	rect.top = 0;
+	rect.left = 0;
+	rect.right = 3000;
+	rect.bottom = 3000;
+	return rect;
+}
 
 //
 //  FUNCTION: MyRegisterClass()
@@ -179,8 +188,8 @@ void SaveFile(HWND hWnd)
 		int iWidthPels = GetDeviceCaps(hdcRef, HORZRES); 
 		int iHeightPels = GetDeviceCaps(hdcRef, VERTRES); 
 
-		RECT rect;
-		GetClientRect(hWnd,&rect);
+		RECT rect = GetMainBMPRect();
+		//GetClientRect(hWnd,&rect);
 
 		rect.left = (rect.left * iWidthMM * 100)/iWidthPels; 
 		rect.top = (rect.top * iHeightMM * 100)/iHeightPels; 
@@ -188,9 +197,9 @@ void SaveFile(HWND hWnd)
 		rect.bottom = (rect.bottom * iHeightMM * 100)/iHeightPels; 
 
 		HDC metaFileDC =  CreateEnhMetaFile(NULL,fullpath,&rect, NULL );
-		GetClientRect(hWnd,&rect);
+		//GetClientRect(hWnd,&rect);
 		PatBlt(metaFileDC, 0,0, rect.right, rect.bottom,PATCOPY);
-		mainBmp->DrawToHDC(metaFileDC,rect );
+		mainBmp->DrawToHDC(metaFileDC,GetMainBMPRect(),GetMainBMPRect() );
 	  	CloseEnhMetaFile(metaFileDC);
 		ReleaseDC(hWnd, hdcRef);
 	}
@@ -203,8 +212,12 @@ void NewFile(HWND hWnd)
 	GetClientRect(hWnd,&rect);
 	hBrush=(HBRUSH)GetStockObject(NULL_BRUSH);
 	SelectObject(hdc,hBrush);
-	mainBmp = new MemoryBitmap(rect, hdc);
 	tempBmp = new MemoryBitmap(rect,hdc);
+	mainBmp = new MemoryBitmap(GetMainBMPRect(), hdc);
+	offsetX = 1000;
+	offsetY = 1000;
+	scale = 1;
+	Rectangle(mainBmp->GetDC(),0,0,GetMainBMPRect().right, GetMainBMPRect().bottom);
 	InvalidateRect(hWnd,NULL,FALSE);
 	UpdateWindow(hWnd);
 }
@@ -243,12 +256,12 @@ void PrintFile(HWND hWnd)
 	printDlg.nToPage     = 0xFFFF;
 	printDlg.nMinPage    = 1;
 	printDlg.nMaxPage    = 0xFFFF;
-	
+		
 	if (PrintDlg(&printDlg))
 	{
-		/*int Rx = GetDeviceCaps(printDlg.hDC, LOGPIXELSX);
+		int Rx = GetDeviceCaps(printDlg.hDC, LOGPIXELSX);
 		int Ry = GetDeviceCaps(printDlg.hDC, LOGPIXELSY);
-		int Rx1 = GetDeviceCaps(hdcMem, LOGPIXELSX);
+		/*int Rx1 = GetDeviceCaps(hdcMem, LOGPIXELSX);
 		int Ry1 = GetDeviceCaps(hdcMem, LOGPIXELSY);*/
 		DOCINFO docInfo;
 		docInfo.cbSize = sizeof(docInfo);
@@ -256,13 +269,15 @@ void PrintFile(HWND hWnd)
 		docInfo.fwType=NULL;
 		docInfo.lpszDatatype=NULL;
 		docInfo.lpszOutput=NULL;
-	
+			
 		StartDoc(printDlg.hDC, &docInfo);
 		StartPage(printDlg.hDC);
 
 		GetClientRect(hWnd,&rect);
+		rect.right*=Rx/100;
+		rect.bottom*=Ry/100;
 		PatBlt(printDlg.hDC, 0,0, rect.right, rect.bottom,PATCOPY);
-		mainBmp->DrawToHDC(printDlg.hDC,rect );
+		mainBmp->DrawToHDC(printDlg.hDC,GetMainBMPRect(),rect );
 
 		EndPage(printDlg.hDC);
 		EndDoc(printDlg.hDC);
@@ -299,8 +314,8 @@ void OpenImageFile(HWND hWnd)
 	if (GetOpenFileName(&openfilename))
 	{
 		NewFile(hWnd);
-		RECT rect;
-		GetClientRect(hWnd,&rect);
+		RECT rect = GetMainBMPRect();
+		
 		HENHMETAFILE metafile =  GetEnhMetaFile(fullpath);
 		PlayEnhMetaFile(mainBmp->GetDC(), metafile,&rect );
 		InvalidateRect(hWnd,NULL,FALSE);
@@ -330,9 +345,8 @@ void SetPenColor(HWND hWnd)
 //
 LRESULT CALLBACK WndProc( HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 {
-
-
-	int wmId, wmEvent;
+	RECT mainRect;
+		int wmId, wmEvent;
 	PAINTSTRUCT ps;
 	 HDC hdc=GetDC(hWnd);
 
@@ -410,30 +424,41 @@ LRESULT CALLBACK WndProc( HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 		GetClientRect(hWnd,&rect);
 		if(isDrawingModeEnabled)
 		{
-			tempBmp->DrawToHDC(hdc, rect);
+			tempBmp->DrawToHDC(hdc, rect,rect);
 		    isDrawingModeEnabled = false;
 		}
 		else
 		{
-			mainBmp->DrawToHDC(hdc, rect);
+			RECT mainRect = rect;
+			mainRect.left = offsetX;
+			mainRect.top = offsetY;
+			mainRect.right*= scale;
+			mainRect.bottom*= scale;
+			mainBmp->DrawToHDC(hdc,mainRect, rect);
 		}
 		EndPaint(hWnd, &ps);
 		break;
 	case WM_LBUTTONDOWN:
 		mouseDownX = GET_X_LPARAM(lParam); 
 		mouseDownY = GET_Y_LPARAM(lParam); 
-		mainBmp->MoveTo(mouseDownX, mouseDownY);
+		mainBmp->MoveTo(mouseDownX/scale + offsetX, mouseDownY/scale + offsetY);
 		tempBmp->MoveTo(mouseDownX, mouseDownY);
 		break;
 	case WM_LBUTTONUP:
 		GetClientRect(hWnd,&rect);
 		tempBmp->Clear(rect);
-		BitBlt(tempBmp->GetDC(),0,0,rect.right,rect.bottom,mainBmp->GetDC(),0,0,SRCCOPY);
+		mainRect = rect;
+		mainRect.left = offsetX;
+		mainRect.top = offsetY;
+		mainRect.right*=scale;
+		mainRect.bottom*=scale;
+		mainBmp->DrawToHDC(tempBmp->GetDC(),mainRect,rect);
+		//BitBlt(tempBmp->GetDC(),0,0,rect.right,rect.bottom,mainBmp->GetDC(),0,0,SRCCOPY);
 		switch (selectedPaintTool)
 		{
 		case PTl_Line:
-			mainBmp->MoveTo(mouseDownX,mouseDownY);
-			mainBmp->BmpLineTo(GET_X_LPARAM(lParam), GET_Y_LPARAM(lParam));
+			mainBmp->MoveTo(mouseDownX/scale + offsetX, mouseDownY/scale + offsetY);
+			mainBmp->BmpLineTo(GET_X_LPARAM(lParam)/scale + offsetX, GET_Y_LPARAM(lParam)/scale + offsetY);
 			break;
 		}
 		isDrawingModeEnabled = false;
@@ -446,12 +471,17 @@ LRESULT CALLBACK WndProc( HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 		{
 			GetClientRect(hWnd,&rect);
 			tempBmp->Clear(rect);
-			BitBlt(tempBmp->GetDC(),0,0,rect.right,rect.bottom,mainBmp->GetDC(),0,0,SRCCOPY);
+			mainRect = rect;
+			mainRect.left = offsetX;
+			mainRect.top = offsetY;
+			mainRect.right*=scale;
+			mainRect.bottom*=scale;
+			mainBmp->DrawToHDC(tempBmp->GetDC(),mainRect,rect);
 
 			switch (selectedPaintTool)
 			{
 			case PTl_Pencil:
-				mainBmp->BmpLineTo(GET_X_LPARAM(lParam), GET_Y_LPARAM(lParam));
+				mainBmp->BmpLineTo(GET_X_LPARAM(lParam)/scale + offsetX, GET_Y_LPARAM(lParam)/scale + offsetY);
 				break;
 			case PTl_Line:
 				tempBmp->MoveTo(mouseDownX, mouseDownY);
@@ -466,6 +496,29 @@ LRESULT CALLBACK WndProc( HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 			InvalidateRect(hWnd, NULL, false);
 			UpdateWindow(hWnd);
 		}
+		break;
+	case WM_MOUSEWHEEL:
+		if( GET_KEYSTATE_WPARAM(wParam) == MK_CONTROL)
+		{
+			offsetX += GET_WHEEL_DELTA_WPARAM(wParam);
+		}
+		else
+		{
+			offsetY += GET_WHEEL_DELTA_WPARAM(wParam);
+		}
+		if( GET_KEYSTATE_WPARAM(wParam) == MK_SHIFT)
+		{
+			if(GET_WHEEL_DELTA_WPARAM(wParam) < 0)
+			{
+				scale /=1.25;
+			}
+			else
+			{
+				scale*=1.25;
+			}
+		}
+		InvalidateRect(hWnd, NULL, false);
+		UpdateWindow(hWnd);
 		break;
 	case WM_ERASEBKGND:
 		GetClientRect(hWnd,&rect);
