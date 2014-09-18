@@ -373,11 +373,12 @@ LRESULT CALLBACK WndProc( HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 			break;
 		case IDM_TOOL_LINE:
 			selectedPaintTool = PTl_Line;
-			InvalidateRect(hWnd,NULL,FALSE);
 			break;
 		case ID_TOOL_RECTLANGE:
 			selectedPaintTool = PTl_Rectlange;
-			InvalidateRect(hWnd,NULL,FALSE);
+			break;
+		case ID_TOOL_ELLIPSE:
+			selectedPaintTool = PTl_Ellipse;
 			break;
 		case ID_FILE_SAVE:
 			SaveFile(hWnd);			
@@ -457,7 +458,6 @@ LRESULT CALLBACK WndProc( HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 		mainRect.right*=scale;
 		mainRect.bottom*=scale;
 		mainBmp->DrawToHDC(tempBmp->GetDC(),mainRect,rect);
-		//BitBlt(tempBmp->GetDC(),0,0,rect.right,rect.bottom,mainBmp->GetDC(),0,0,SRCCOPY);
 		switch (selectedPaintTool)
 		{
 		case PTl_Line:
@@ -466,6 +466,9 @@ LRESULT CALLBACK WndProc( HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 			break;
 		case PTl_Rectlange:
 			Rectangle(mainBmp->GetDC(),mouseDownX*scale + offsetX,mouseDownY*scale + offsetY,GET_X_LPARAM(lParam)*scale + offsetX, GET_Y_LPARAM(lParam)*scale + offsetY);
+			break;
+		case PTl_Ellipse:
+			Ellipse(mainBmp->GetDC(),mouseDownX*scale + offsetX,mouseDownY*scale + offsetY,GET_X_LPARAM(lParam)*scale + offsetX, GET_Y_LPARAM(lParam)*scale + offsetY);
 			break;
 		}
 		isDrawingModeEnabled = false;
@@ -497,6 +500,8 @@ LRESULT CALLBACK WndProc( HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 			case PTl_Rectlange:
 				Rectangle(tempBmp->GetDC(),mouseDownX,mouseDownY,GET_X_LPARAM(lParam), GET_Y_LPARAM(lParam));
 				break;
+			case PTl_Ellipse:
+				Ellipse(tempBmp->GetDC(),mouseDownX,mouseDownY,GET_X_LPARAM(lParam), GET_Y_LPARAM(lParam));
 			default:
 				break;
 			}
