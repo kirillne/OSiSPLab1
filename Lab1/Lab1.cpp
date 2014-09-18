@@ -217,7 +217,7 @@ void NewFile(HWND hWnd)
 	offsetX = 1000;
 	offsetY = 1000;
 	scale = 1;
-	Rectangle(mainBmp->GetDC(),0,0,GetMainBMPRect().right, GetMainBMPRect().bottom);
+	Rectangle(mainBmp->GetDC(),1,1,GetMainBMPRect().right-2, GetMainBMPRect().bottom-2);
 	InvalidateRect(hWnd,NULL,FALSE);
 	UpdateWindow(hWnd);
 }
@@ -375,6 +375,10 @@ LRESULT CALLBACK WndProc( HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 			selectedPaintTool = PTl_Line;
 			InvalidateRect(hWnd,NULL,FALSE);
 			break;
+		case ID_TOOL_RECTLANGE:
+			selectedPaintTool = PTl_Rectlange;
+			InvalidateRect(hWnd,NULL,FALSE);
+			break;
 		case ID_FILE_SAVE:
 			SaveFile(hWnd);			
 			break;
@@ -457,8 +461,11 @@ LRESULT CALLBACK WndProc( HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 		switch (selectedPaintTool)
 		{
 		case PTl_Line:
-			mainBmp->MoveTo(mouseDownX/scale + offsetX, mouseDownY/scale + offsetY);
-			mainBmp->BmpLineTo(GET_X_LPARAM(lParam)/scale + offsetX, GET_Y_LPARAM(lParam)/scale + offsetY);
+			mainBmp->MoveTo(mouseDownX*scale + offsetX, mouseDownY*scale + offsetY);
+			mainBmp->BmpLineTo(GET_X_LPARAM(lParam)*scale + offsetX, GET_Y_LPARAM(lParam)*scale + offsetY);
+			break;
+		case PTl_Rectlange:
+			Rectangle(mainBmp->GetDC(),mouseDownX*scale + offsetX,mouseDownY*scale + offsetY,GET_X_LPARAM(lParam)*scale + offsetX, GET_Y_LPARAM(lParam)*scale + offsetY);
 			break;
 		}
 		isDrawingModeEnabled = false;
@@ -488,6 +495,7 @@ LRESULT CALLBACK WndProc( HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 				tempBmp->BmpLineTo(GET_X_LPARAM(lParam), GET_Y_LPARAM(lParam));
 				break;
 			case PTl_Rectlange:
+				Rectangle(tempBmp->GetDC(),mouseDownX,mouseDownY,GET_X_LPARAM(lParam), GET_Y_LPARAM(lParam));
 				break;
 			default:
 				break;
@@ -517,7 +525,7 @@ LRESULT CALLBACK WndProc( HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 				scale*=1.25;
 			}
 		}
-		InvalidateRect(hWnd, NULL, false);
+		InvalidateRect(hWnd, NULL, true);
 		UpdateWindow(hWnd);
 		break;
 	case WM_ERASEBKGND:
