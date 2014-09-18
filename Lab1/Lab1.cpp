@@ -30,9 +30,14 @@ int offsetY = 1000;
 int mouseDownX;									//coordinates where mouse was down
 int mouseDownY;
 
+int poligoneStartMouseDownX;									
+int poligoneStartMouseDownY;
+
+
 PaintTools selectedPaintTool = PTl_Line;
 
 bool isDrawingModeEnabled = false;
+bool isPolylineModeEnabled = false;
 
 
 
@@ -333,6 +338,12 @@ void SetPenColor(HWND hWnd)
 	}
 }
 
+void DrawLineOnMainBMP(int fromX, int fromY, int toX, int toY)
+{
+	mainBmp->MoveTo(fromX*scale + offsetX, fromY*scale + offsetY);
+	mainBmp->BmpLineTo(toX*scale + offsetX, toY*scale + offsetY);
+}
+
 //
 //  FUNCTION: WndProc(HWND, UINT, WPARAM, LPARAM)
 //
@@ -379,6 +390,12 @@ LRESULT CALLBACK WndProc( HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 			break;
 		case ID_TOOL_ELLIPSE:
 			selectedPaintTool = PTl_Ellipse;
+			break;
+		case ID_TOOL_POLYLINE:
+			selectedPaintTool = PTl_Polyline;
+			break;
+		case ID_TOOL_POLYGON:
+			selectedPaintTool = PTl_Polygone;
 			break;
 		case ID_FILE_SAVE:
 			SaveFile(hWnd);			
@@ -444,10 +461,22 @@ LRESULT CALLBACK WndProc( HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 		EndPaint(hWnd, &ps);
 		break;
 	case WM_LBUTTONDOWN:
-		mouseDownX = GET_X_LPARAM(lParam); 
-		mouseDownY = GET_Y_LPARAM(lParam); 
-		mainBmp->MoveTo(mouseDownX/scale + offsetX, mouseDownY/scale + offsetY);
-		tempBmp->MoveTo(mouseDownX, mouseDownY);
+		if(!isPolylineModeEnabled)
+		{
+			mouseDownX = GET_X_LPARAM(lParam); 
+			mouseDownY = GET_Y_LPARAM(lParam); 
+			mainBmp->MoveTo(mouseDownX/scale + offsetX, mouseDownY/scale + offsetY);
+			tempBmp->MoveTo(mouseDownX, mouseDownY);
+			if(selectedPaintTool == PTl_Polygone)
+			{
+				poligoneStartMouseDownX =  GET_X_LPARAM(lParam); 
+				poligoneStartMouseDownY = GET_Y_LPARAM(lParam); 
+			}
+		}
+		else
+		{
+			isDrawingModeEnabled = true;
+		}
 		break;
 	case WM_LBUTTONUP:
 		GetClientRect(hWnd,&rect);
@@ -458,11 +487,18 @@ LRESULT CALLBACK WndProc( HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 		mainRect.right*=scale;
 		mainRect.bottom*=scale;
 		mainBmp->DrawToHDC(tempBmp->GetDC(),mainRect,rect);
+		isDrawingModeEnabled = false;
 		switch (selectedPaintTool)
 		{
 		case PTl_Line:
-			mainBmp->MoveTo(mouseDownX*scale + offsetX, mouseDownY*scale + offsetY);
-			mainBmp->BmpLineTo(GET_X_LPARAM(lParam)*scale + offsetX, GET_Y_LPARAM(lParam)*scale + offsetY);
+			DrawLineOnMainBMP(mouseDownX, mouseDownY, GET_X_LPARAM(lParam), GET_Y_LPARAM(lParam));
+			break;
+		case PTl_Polygone:
+		case PTl_Polyline:
+			DrawLineOnMainBMP(mouseDownX, mouseDownY, GET_X_LPARAM(lParam), GET_Y_LPARAM(lParam));
+			mouseDownX = GET_X_LPARAM(lParam); 
+			mouseDownY = GET_Y_LPARAM(lParam); 
+			isPolylineModeEnabled = true;
 			break;
 		case PTl_Rectlange:
 			Rectangle(mainBmp->GetDC(),mouseDownX*scale + offsetX,mouseDownY*scale + offsetY,GET_X_LPARAM(lParam)*scale + offsetX, GET_Y_LPARAM(lParam)*scale + offsetY);
@@ -471,10 +507,20 @@ LRESULT CALLBACK WndProc( HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 			Ellipse(mainBmp->GetDC(),mouseDownX*scale + offsetX,mouseDownY*scale + offsetY,GET_X_LPARAM(lParam)*scale + offsetX, GET_Y_LPARAM(lParam)*scale + offsetY);
 			break;
 		}
-		isDrawingModeEnabled = false;
 		InvalidateRect(hWnd,NULL,FALSE);
 		UpdateWindow(hWnd);
 
+		break;
+	case WM_RBUTTONUP:
+		isDrawingModeEnabled = false;
+		DrawLineOnMainBMP(mouseDownX, mouseDownY, GET_X_LPARAM(lParam), GET_Y_LPARAM(lParam));
+		if(selectedPaintTool == PTl_Polygone && isPolylineModeEnabled)
+		{
+			DrawLineOnMainBMP( GET_X_LPARAM(lParam), GET_Y_LPARAM(lParam), poligoneStartMouseDownX, poligoneStartMouseDownY);
+		}
+		isPolylineModeEnabled = false;
+		InvalidateRect(hWnd,NULL,FALSE);
+		UpdateWindow(hWnd);
 		break;
 	case WM_MOUSEMOVE:
 		if(wParam == MK_LBUTTON)
@@ -494,6 +540,8 @@ LRESULT CALLBACK WndProc( HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 				mainBmp->BmpLineTo(GET_X_LPARAM(lParam)/scale + offsetX, GET_Y_LPARAM(lParam)/scale + offsetY);
 				break;
 			case PTl_Line:
+			case PTl_Polygone:
+			case PTl_Polyline:
 				tempBmp->MoveTo(mouseDownX, mouseDownY);
 				tempBmp->BmpLineTo(GET_X_LPARAM(lParam), GET_Y_LPARAM(lParam));
 				break;
