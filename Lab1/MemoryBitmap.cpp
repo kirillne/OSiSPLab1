@@ -37,6 +37,18 @@ void MemoryBitmap::SetPenColor(COLORREF color)
 	DeleteObject(SelectObject(memDC, pen));
 }
 
+void MemoryBitmap::SetBrushColor(COLORREF color)
+{
+	brush= CreateSolidBrush(color); 
+	DeleteObject(SelectObject(memDC, brush));
+}
+
+void MemoryBitmap::SetEmptyBrush()
+{
+	brush= static_cast<HBRUSH>(GetStockObject(NULL_BRUSH));
+	DeleteObject(SelectObject(memDC, brush));
+}
+
 HDC MemoryBitmap::GetDC()
 {
 	return memDC;

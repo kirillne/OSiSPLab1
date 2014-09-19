@@ -11,7 +11,8 @@ public:
 	HDC GetDC();
 	void SetPenWidth(int penWidth);
 	void SetPenColor(COLORREF color);
-
+	void SetBrushColor(COLORREF color);
+	void SetEmptyBrush();
 private:
 	HDC memDC;
 	HBITMAP bmp;

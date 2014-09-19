@@ -39,6 +39,7 @@ PaintTools selectedPaintTool = PTl_Line;
 bool isDrawingModeEnabled = false;
 bool isPolylineModeEnabled = false;
 bool isTextModeEnabled = false;
+bool isSaved = true;
 
 std::wstring inputedText = L"";
 
@@ -51,6 +52,8 @@ LRESULT CALLBACK	WndProc(HWND, UINT, WPARAM, LPARAM);
 INT_PTR CALLBACK	About(HWND, UINT, WPARAM, LPARAM);
 void				CreateMemoryBitmap();
 void				DrawMainBMPToTempBMP(HWND hWnd);
+INT_PTR CALLBACK    CloseDialog(HWND hDlg, UINT message, WPARAM wParam, LPARAM lParam);
+
 
 
 
@@ -212,6 +215,7 @@ void SaveFile(HWND hWnd)
 		mainBmp->DrawToHDC(metaFileDC,GetMainBMPRect(),GetMainBMPRect() );
 	  	CloseEnhMetaFile(metaFileDC);
 		ReleaseDC(hWnd, hdcRef);
+		isSaved = true;
 	}
 }
 
@@ -222,6 +226,11 @@ void NewFile(HWND hWnd)
 	GetClientRect(hWnd,&rect);
 	hBrush=(HBRUSH)GetStockObject(NULL_BRUSH);
 	SelectObject(hdc,hBrush);
+	if(tempBmp != NULL)
+	{
+		delete tempBmp;
+		delete mainBmp;
+	}
 	tempBmp = new MemoryBitmap(rect,hdc);
 	mainBmp = new MemoryBitmap(GetMainBMPRect(), hdc);
 	offsetX = 1000;
@@ -230,6 +239,7 @@ void NewFile(HWND hWnd)
 	Rectangle(mainBmp->GetDC(),1,1,GetMainBMPRect().right-2, GetMainBMPRect().bottom-2);
 	InvalidateRect(hWnd,NULL,FALSE);
 	UpdateWindow(hWnd);
+	isSaved = true;
 }
 
 COLORREF GetColorFromUser(HWND hWnd)
@@ -292,6 +302,7 @@ void PrintFile(HWND hWnd)
 		EndPage(printDlg.hDC);
 		EndDoc(printDlg.hDC);
 		DeleteDC(printDlg.hDC);
+		isSaved = true;
 	}
 
 
@@ -343,10 +354,45 @@ void SetPenColor(HWND hWnd)
 	}
 }
 
+void SetBrushColor(HWND hWnd)
+{
+	COLORREF color = GetColorFromUser(hWnd);
+	if(color != 0xFFFFFFFF)
+	{
+		mainBmp->SetBrushColor(color);
+		tempBmp->SetBrushColor(color);
+	}
+}
+
 void DrawLineOnMainBMP(int fromX, int fromY, int toX, int toY)
 {
 	mainBmp->MoveTo(fromX*scale + offsetX, fromY*scale + offsetY);
 	mainBmp->BmpLineTo(toX*scale + offsetX, toY*scale + offsetY);
+}
+
+int OnClose(HWND hWnd)
+{
+	if(!isSaved)
+	{
+		switch (DialogBox(hInst, MAKEINTRESOURCE(IDD_CLOSE), hWnd, CloseDialog))
+		{
+		case SR_Save:
+			SaveFile(hWnd);
+			if(isSaved)
+			{
+				DestroyWindow(hWnd);
+				return 0;
+			}
+			return 1;
+		case SR_Exit:
+			DestroyWindow(hWnd);
+			return 0;
+		case SR_Cancel:
+			return 1;
+		}
+	}
+	DestroyWindow(hWnd);
+	return 0;
 }
 
 //
@@ -382,7 +428,7 @@ LRESULT CALLBACK WndProc( HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 			DialogBox(hInst, MAKEINTRESOURCE(IDD_ABOUTBOX), hWnd, About);
 			break;
 		case IDM_EXIT:
-			DestroyWindow(hWnd);
+			OnClose(hWnd);
 			break;
 		case IDM_TOOL_PENCIL:
 			selectedPaintTool = PTl_Pencil;
@@ -443,6 +489,13 @@ LRESULT CALLBACK WndProc( HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 			break;
 		case ID_PEN_COLOR:
 			SetPenColor(hWnd);
+			break;
+		case ID_BRUSH_COLOR:
+			SetBrushColor(hWnd);
+			break;
+		case ID_BRUSH_NONE:
+			mainBmp->SetEmptyBrush();
+			tempBmp->SetEmptyBrush();
 			break;
 		default:
 			return DefWindowProc(hWnd, message, wParam, lParam);
@@ -524,7 +577,7 @@ LRESULT CALLBACK WndProc( HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 		}
 		InvalidateRect(hWnd,NULL,FALSE);
 		UpdateWindow(hWnd);
-
+		isSaved = false;
 		break;
 	case WM_RBUTTONUP:
 		isDrawingModeEnabled = false;
@@ -618,6 +671,8 @@ LRESULT CALLBACK WndProc( HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 		GetClientRect(hWnd,&rect);
 		FillRect(hdc,&rect,WHITE_BRUSH);
 		break;
+	case WM_CLOSE:
+		return OnClose(hWnd);
 	case WM_DESTROY:
 		PostQuitMessage(0);
 		break;
@@ -626,6 +681,8 @@ LRESULT CALLBACK WndProc( HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 	}
 	return 0;
 }
+
+
 
 void DrawMainBMPToTempBMP(HWND hWnd)
 {
@@ -654,6 +711,34 @@ INT_PTR CALLBACK About(HWND hDlg, UINT message, WPARAM wParam, LPARAM lParam)
 		{
 			EndDialog(hDlg, LOWORD(wParam));
 			return (INT_PTR)TRUE;
+		}
+		break;
+	}
+	return (INT_PTR)FALSE;
+}
+
+// Message handler for close dialog.
+INT_PTR CALLBACK CloseDialog(HWND hDlg, UINT message, WPARAM wParam, LPARAM lParam)
+{
+	UNREFERENCED_PARAMETER(lParam);
+	switch (message)
+	{
+	case WM_INITDIALOG:
+		return (INT_PTR)TRUE;
+
+	case WM_COMMAND:
+		int	wmId    = LOWORD(wParam);
+		switch (wmId)
+		{
+		case IDSAVE:
+			EndDialog(hDlg,SR_Save);
+			break;
+		case IDEXIT:
+			EndDialog(hDlg,SR_Exit);
+			break;
+		case IDCANCEL:
+			EndDialog(hDlg,SR_Cancel);
+			break;
 		}
 		break;
 	}
