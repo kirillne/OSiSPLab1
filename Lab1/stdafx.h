@@ -13,12 +13,13 @@
 #include <windowsx.h>
 #include <commdlg.h>
 
+
 // C RunTime Header Files
 #include <stdlib.h>
 #include <malloc.h>
 #include <memory.h>
 #include <tchar.h>
 
-
+#include <string>
 
 // TODO: reference additional headers your program requires here

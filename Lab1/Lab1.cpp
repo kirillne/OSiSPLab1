@@ -38,6 +38,9 @@ PaintTools selectedPaintTool = PTl_Line;
 
 bool isDrawingModeEnabled = false;
 bool isPolylineModeEnabled = false;
+bool isTextModeEnabled = false;
+
+std::wstring inputedText = L"";
 
 
 
@@ -47,6 +50,8 @@ BOOL				InitInstance(HINSTANCE, int);
 LRESULT CALLBACK	WndProc(HWND, UINT, WPARAM, LPARAM);
 INT_PTR CALLBACK	About(HWND, UINT, WPARAM, LPARAM);
 void				CreateMemoryBitmap();
+void				DrawMainBMPToTempBMP(HWND hWnd);
+
 
 
 int APIENTRY _tWinMain(_In_ HINSTANCE hInstance,
@@ -397,6 +402,9 @@ LRESULT CALLBACK WndProc( HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 		case ID_TOOL_POLYGON:
 			selectedPaintTool = PTl_Polygone;
 			break;
+		case ID_TOOL_TEXT:
+			selectedPaintTool = PTl_Text;
+			break;
 		case ID_FILE_SAVE:
 			SaveFile(hWnd);			
 			break;
@@ -409,7 +417,7 @@ LRESULT CALLBACK WndProc( HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 		case ID_FILE_PRINT:
 			PrintFile(hWnd);
 			break;
-		case ID_WIDTH_1:
+				case ID_WIDTH_1:
 			mainBmp->SetPenWidth(1);
 			tempBmp->SetPenWidth(1);
 			break;
@@ -451,6 +459,7 @@ LRESULT CALLBACK WndProc( HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 		}
 		else
 		{
+			//Draw MainBpm to form
 			RECT mainRect = rect;
 			mainRect.left = offsetX;
 			mainRect.top = offsetY;
@@ -463,19 +472,25 @@ LRESULT CALLBACK WndProc( HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 	case WM_LBUTTONDOWN:
 		if(!isPolylineModeEnabled)
 		{
+			//Save click position
 			mouseDownX = GET_X_LPARAM(lParam); 
 			mouseDownY = GET_Y_LPARAM(lParam); 
-			mainBmp->MoveTo(mouseDownX/scale + offsetX, mouseDownY/scale + offsetY);
+			mainBmp->MoveTo(mouseDownX*scale + offsetX, mouseDownY*scale + offsetY);
 			tempBmp->MoveTo(mouseDownX, mouseDownY);
 			if(selectedPaintTool == PTl_Polygone)
 			{
 				poligoneStartMouseDownX =  GET_X_LPARAM(lParam); 
 				poligoneStartMouseDownY = GET_Y_LPARAM(lParam); 
 			}
+			else if (selectedPaintTool == PTl_Text)
+			{
+				isTextModeEnabled = true;
+				inputedText.clear();
+			}
 		}
 		else
 		{
-			isDrawingModeEnabled = true;
+			isDrawingModeEnabled = true; //for Polilyne we continue drawing
 		}
 		break;
 	case WM_LBUTTONUP:
@@ -486,7 +501,7 @@ LRESULT CALLBACK WndProc( HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 		mainRect.top = offsetY;
 		mainRect.right*=scale;
 		mainRect.bottom*=scale;
-		mainBmp->DrawToHDC(tempBmp->GetDC(),mainRect,rect);
+		mainBmp->DrawToHDC(tempBmp->GetDC(),mainRect,rect); //Draw main to temp
 		isDrawingModeEnabled = false;
 		switch (selectedPaintTool)
 		{
@@ -522,22 +537,40 @@ LRESULT CALLBACK WndProc( HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 		InvalidateRect(hWnd,NULL,FALSE);
 		UpdateWindow(hWnd);
 		break;
+	case WM_CHAR:
+		if(isTextModeEnabled)
+		{
+			isDrawingModeEnabled = true;
+			char c=(char)wParam;
+			if(c == VK_RETURN)
+			{
+				isTextModeEnabled = false;
+				isDrawingModeEnabled = false;
+				TextOut(mainBmp->GetDC(),mouseDownX*scale + offsetX, mouseDownY*scale + offsetY, inputedText.c_str(),inputedText.length());
+			}
+			else if(c == VK_ESCAPE)
+			{
+				isTextModeEnabled = false;
+				isDrawingModeEnabled = false;
+			}
+			else
+			{
+				DrawMainBMPToTempBMP(hWnd);
+				inputedText += c;
+				TextOut(tempBmp->GetDC(),mouseDownX, mouseDownY, inputedText.c_str(),inputedText.length());
+			}
+			InvalidateRect(hWnd,NULL,FALSE);
+			UpdateWindow(hWnd);
+		}
+		break;
 	case WM_MOUSEMOVE:
 		if(wParam == MK_LBUTTON)
 		{
-			GetClientRect(hWnd,&rect);
-			tempBmp->Clear(rect);
-			mainRect = rect;
-			mainRect.left = offsetX;
-			mainRect.top = offsetY;
-			mainRect.right*=scale;
-			mainRect.bottom*=scale;
-			mainBmp->DrawToHDC(tempBmp->GetDC(),mainRect,rect);
-
+			DrawMainBMPToTempBMP(hWnd);
 			switch (selectedPaintTool)
 			{
 			case PTl_Pencil:
-				mainBmp->BmpLineTo(GET_X_LPARAM(lParam)/scale + offsetX, GET_Y_LPARAM(lParam)/scale + offsetY);
+				mainBmp->BmpLineTo(GET_X_LPARAM(lParam)*scale + offsetX, GET_Y_LPARAM(lParam)*scale + offsetY);
 				break;
 			case PTl_Line:
 			case PTl_Polygone:
@@ -592,6 +625,19 @@ LRESULT CALLBACK WndProc( HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 		return DefWindowProc(hWnd, message, wParam, lParam);
 	}
 	return 0;
+}
+
+void DrawMainBMPToTempBMP(HWND hWnd)
+{
+	GetClientRect(hWnd,&rect);
+	tempBmp->Clear(rect);
+	RECT mainRect = rect;
+	mainRect.left = offsetX;
+	mainRect.top = offsetY;
+	mainRect.right*=scale;
+	mainRect.bottom*=scale;
+	mainBmp->DrawToHDC(tempBmp->GetDC(),mainRect,rect);
+
 }
 
 // Message handler for about box.
